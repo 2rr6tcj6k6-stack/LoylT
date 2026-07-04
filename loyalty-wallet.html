@@ -30,9 +30,10 @@
     font-family:'Inter',sans-serif;
     overflow:hidden;
     height:100vh;
+    height:100dvh;
     -webkit-font-smoothing:antialiased;
   }
-  #app{position:relative; height:100vh; width:100vw; max-width:520px; margin:0 auto; background:var(--ink); overflow:hidden;}
+  #app{position:relative; height:100vh; height:100dvh; width:100vw; max-width:520px; margin:0 auto; background:var(--ink); overflow:hidden;}
   .screen{
     position:absolute; inset:0; display:flex; flex-direction:column;
     transform:translateX(0); transition:transform .32s ease, opacity .32s ease; opacity:1;
@@ -87,7 +88,7 @@
   .kebab{background:none; border:none; color:#8a7c58; font-size:18px; padding:4px 6px; cursor:pointer; flex-shrink:0;}
 
   .fab{
-    position:absolute; right:20px; bottom:28px;
+    position:absolute; right:20px; bottom:calc(28px + env(safe-area-inset-bottom));
     width:58px; height:58px; border-radius:50%;
     background:var(--brass); color:var(--ink); border:none;
     font-size:28px; font-weight:700; cursor:pointer;
