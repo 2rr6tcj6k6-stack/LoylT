@@ -478,22 +478,10 @@
 
   function startScanner(){
     if(html5QrCode){ return; }
-    html5QrCode = new Html5Qrcode("reader", {
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.CODABAR,
-        Html5QrcodeSupportedFormats.ITF,
-        Html5QrcodeSupportedFormats.QR_CODE
-      ]
-    });
+    html5QrCode = new Html5Qrcode("reader");
     html5QrCode.start(
-      { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
-      { fps: 15, qrbox: { width: 290, height: 150 } },
+      { facingMode: "environment" },
+      { fps: 12, qrbox: { width: 290, height: 150 } },
       (decodedText, decodedResult) => {
         let fmt = 'CODE_128';
         try{ fmt = decodedResult.result.format.formatName; }catch(e){}
