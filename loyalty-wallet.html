@@ -127,6 +127,12 @@
   .frame span:nth-child(4){bottom:0;right:0;border-left:none;border-top:none;}
   .scanhint{position:absolute; bottom:18px; left:0; right:0; text-align:center; color:#cfd8dd; font-size:13px; font-family:'Inter';}
   .scanFail{padding:24px; text-align:center; color:#cfd8dd; font-size:14px; line-height:1.6;}
+  .torchBtn{
+    position:absolute; top:16px; right:16px; width:44px; height:44px; border-radius:50%;
+    background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.3); color:#fff; font-size:19px;
+    align-items:center; justify-content:center; cursor:pointer; z-index:5;
+  }
+  .torchBtn.active{ background:var(--brass); color:var(--ink); border-color:var(--brass); }
 
   .manualLink{
     text-align:center; padding:14px; flex-shrink:0; border-top:1px solid var(--petrol-light);
@@ -250,6 +256,7 @@
         <div class="frame"><span></span><span></span><span></span><span></span></div>
       </div>
       <div class="scanhint" id="scanhintText">Hold the barcode inside the frame</div>
+      <button class="torchBtn" id="torchBtn" style="display:none;" aria-label="Toggle flashlight">&#128161;</button>
     </div>
     <div class="manualLink"><a id="manualEntryLink">Can't scan it? Enter the code manually</a></div>
   </div>
@@ -463,26 +470,60 @@
     $('scanhintText').textContent = 'Hold the barcode inside the frame';
     $('viewfinderUI').style.display = 'flex';
     $('reader').innerHTML = '';
+    $('torchBtn').style.display = 'none';
+    $('torchBtn').classList.remove('active');
+    torchOn = false;
     startScanner();
   }
 
   function startScanner(){
     if(html5QrCode){ return; }
-    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode = new Html5Qrcode("reader", {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.CODABAR,
+        Html5QrcodeSupportedFormats.ITF,
+        Html5QrcodeSupportedFormats.QR_CODE
+      ]
+    });
     html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 260, height: 160 } },
+      { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+      { fps: 15, qrbox: { width: 290, height: 150 } },
       (decodedText, decodedResult) => {
         let fmt = 'CODE_128';
         try{ fmt = decodedResult.result.format.formatName; }catch(e){}
         onScanSuccess(decodedText, fmt);
       },
       (errorMsg) => { /* per-frame scan miss, ignore */ }
-    ).catch(err=>{
+    ).then(()=>{
+      setupTorchToggle();
+    }).catch(err=>{
       $('viewfinderUI').style.display='none';
       $('reader').innerHTML = '<div class="scanFail">Couldn\'t access the camera. Check your browser\'s camera permission, or enter the code by hand.</div>';
     });
   }
+
+  function setupTorchToggle(){
+    try{
+      const caps = html5QrCode.getRunningTrackCapabilities();
+      if(caps && caps.torch){
+        $('torchBtn').style.display = 'flex';
+      }
+    }catch(e){ /* torch not supported on this device/browser */ }
+  }
+
+  let torchOn = false;
+  $('torchBtn').addEventListener('click', ()=>{
+    if(!html5QrCode) return;
+    torchOn = !torchOn;
+    html5QrCode.applyVideoConstraints({ advanced: [{ torch: torchOn }] }).catch(()=>{});
+    $('torchBtn').classList.toggle('active', torchOn);
+  });
 
   function stopScanner(){
     if(html5QrCode){
