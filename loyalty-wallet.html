@@ -133,6 +133,14 @@
     align-items:center; justify-content:center; cursor:pointer; z-index:5;
   }
   .torchBtn.active{ background:var(--brass); color:var(--ink); border-color:var(--brass); }
+  .captureScanBtn{
+    position:absolute; bottom:52px; left:50%; transform:translateX(-50%);
+    background:var(--brass); color:var(--ink); border:none; border-radius:24px;
+    padding:12px 22px; font-family:'Inter'; font-weight:700; font-size:14px; cursor:pointer;
+    box-shadow:0 4px 12px rgba(0,0,0,.4); z-index:5;
+  }
+  .captureScanBtn:active{ background:var(--brass-light); }
+  .captureScanBtn.busy{ opacity:.6; pointer-events:none; }
 
   .manualLink{
     text-align:center; padding:14px; flex-shrink:0; border-top:1px solid var(--petrol-light);
@@ -257,6 +265,7 @@
       </div>
       <div class="scanhint" id="scanhintText">Hold the barcode inside the frame</div>
       <button class="torchBtn" id="torchBtn" style="display:none;" aria-label="Toggle flashlight">&#128161;</button>
+      <button class="captureScanBtn" id="captureScanBtn">Tap to capture &amp; decode</button>
     </div>
     <div class="manualLink"><a id="manualEntryLink">Can't scan it? Enter the code manually</a></div>
   </div>
@@ -473,6 +482,9 @@
     $('torchBtn').style.display = 'none';
     $('torchBtn').classList.remove('active');
     torchOn = false;
+    captureBusy = false;
+    $('captureScanBtn').classList.remove('busy');
+    $('captureScanBtn').textContent = 'Tap to capture & decode';
     startScanner();
   }
 
@@ -528,6 +540,45 @@
     pendingScan = { value, format };
     openDetailsForNewCard(false);
   }
+
+  let captureBusy = false;
+  $('captureScanBtn').addEventListener('click', async ()=>{
+    if(captureBusy) return;
+    const video = document.querySelector('#reader video');
+    if(!video || !video.videoWidth){
+      alert('Camera is still starting up, give it a second and try again.');
+      return;
+    }
+    captureBusy = true;
+    $('captureScanBtn').classList.add('busy');
+    $('captureScanBtn').textContent = 'Reading...';
+    try{
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      const file = new File([blob], 'capture.png', { type: 'image/png' });
+      const result = await Html5Qrcode.scanFileV2(file, false);
+      let text = null, fmt = 'CODE_128';
+      if(typeof result === 'string'){ text = result; }
+      else if(result && result.decodedText){
+        text = result.decodedText;
+        try{ fmt = result.result.format.formatName; }catch(e){}
+      }
+      if(text){
+        onScanSuccess(text, fmt);
+        return;
+      }
+      throw new Error('no code found');
+    }catch(err){
+      alert("Couldn't find a barcode in that shot. Try getting closer, reducing glare, or holding steadier, then tap again.");
+    }finally{
+      captureBusy = false;
+      $('captureScanBtn').classList.remove('busy');
+      $('captureScanBtn').textContent = 'Tap to capture & decode';
+    }
+  });
 
   $('manualEntryLink').addEventListener('click', ()=>{
     stopScanner();
